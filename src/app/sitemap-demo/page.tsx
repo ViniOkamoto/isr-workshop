@@ -23,6 +23,10 @@ export default function SitemapDemoPage() {
         <p className="text-sm mt-3 border-t pt-2 border-indigo-700">
           This page was generated at: {new Date().toLocaleString()}
         </p>
+        <p className="text-sm text-yellow-300">
+          Note: Timestamps may appear different in production builds vs.
+          development.
+        </p>
         <Link
           href="/sitemap.xml"
           target="_blank"

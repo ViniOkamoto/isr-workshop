@@ -1,8 +1,16 @@
 import PostList from "../components/PostList";
-import { Post } from "../api/posts/data";
+import { Post, getAllPosts } from "../api/posts/data";
 
 // This function is used to fetch data from our API
 async function getPosts(): Promise<Post[]> {
+  // During build time, directly use the data module
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE === "build"
+  ) {
+    return getAllPosts();
+  }
+
   // In a real app, this would be an external API call
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/posts`,

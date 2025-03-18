@@ -1,17 +1,29 @@
-import { Post } from "../../api/posts/data";
+import { Post, getAllPosts } from "../../api/posts/data";
 import PostDetail from "../../components/PostDetail";
 import { notFound } from "next/navigation";
 
 // This generates the static paths at build time
 export async function generateStaticParams() {
   try {
-    const posts = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/posts`
-    ).then((res) => res.json());
+    // During build time, directly use the data module instead of fetch
+    // This prevents the "fetch failed" error on Vercel
+    if (process.env.NODE_ENV === "production") {
+      const posts = getAllPosts();
+      return posts.map((post) => ({
+        id: post.id,
+      }));
+    } else {
+      // In development, we can still use fetch
+      const posts = await fetch(
+        `${
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+        }/api/posts`
+      ).then((res) => res.json());
 
-    return posts.map((post: Post) => ({
-      id: post.id,
-    }));
+      return posts.map((post: Post) => ({
+        id: post.id,
+      }));
+    }
   } catch (error) {
     console.error("Failed to generate static params:", error);
     // Return empty array to prevent build failure
@@ -21,6 +33,17 @@ export async function generateStaticParams() {
 
 // This fetches the data for a specific post
 async function getPost(id: string): Promise<Post> {
+  // During build time, directly use the data module
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE === "build"
+  ) {
+    const post = getAllPosts().find((post) => post.id === id);
+    if (!post) notFound();
+    return post;
+  }
+
+  // In runtime or development, use fetch with ISR
   const res = await fetch(
     `${
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"

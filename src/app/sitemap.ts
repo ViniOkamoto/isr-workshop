@@ -8,8 +8,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const posts = getAllPosts();
 
-  // Force revalidation of the sitemap path
-  revalidatePath("/sitemap.xml");
+  // Force revalidation of the sitemap path, but only in runtime, not during build
+  if (
+    !(
+      process.env.NODE_ENV === "production" &&
+      process.env.NEXT_PHASE === "build"
+    )
+  ) {
+    revalidatePath("/sitemap.xml");
+  }
 
   // Base routes
   const routes = [
