@@ -9,13 +9,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPosts();
 
   // Force revalidation of the sitemap path, but only in runtime, not during build
-  if (
-    !(
-      process.env.NODE_ENV === "production" &&
-      process.env.NEXT_PHASE === "build"
-    )
-  ) {
-    revalidatePath("/sitemap.xml");
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      revalidatePath("/sitemap.xml");
+    } catch (error) {
+      console.error("Revalidation failed, but continuing:", error);
+    }
   }
 
   // Base routes

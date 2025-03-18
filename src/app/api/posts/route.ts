@@ -26,11 +26,16 @@ export async function POST(request: NextRequest) {
       date: body.date || new Date().toISOString().split("T")[0], // Use provided date or today
     });
 
-    // Revalidate the sitemap and blog pages
-    revalidatePath("/sitemap.xml");
-    revalidatePath("/blog");
-    revalidatePath(`/blog/${newPost.id}`);
-    revalidatePath("/sitemap-demo");
+    // Try to revalidate, but don't fail if revalidation fails
+    try {
+      // Revalidate the sitemap and blog pages
+      revalidatePath("/sitemap.xml");
+      revalidatePath("/blog");
+      revalidatePath(`/blog/${newPost.id}`);
+      revalidatePath("/sitemap-demo");
+    } catch (error) {
+      console.error("Revalidation failed, but continuing:", error);
+    }
 
     return NextResponse.json(newPost, { status: 201 });
   } catch {

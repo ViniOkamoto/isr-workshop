@@ -3,30 +3,31 @@ import { Post, getAllPosts } from "../api/posts/data";
 
 // This function is used to fetch data from our API
 async function getPosts(): Promise<Post[]> {
-  // During build time, directly use the data module
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.NEXT_PHASE === "build"
-  ) {
+  // Always use direct data import in production to avoid build issues on Vercel
+  if (process.env.NODE_ENV === "production") {
     return getAllPosts();
   }
 
-  // In a real app, this would be an external API call
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/posts`,
-    {
-      // Enable ISR with a revalidation time of 60 seconds
-      // This tells Next.js to regenerate the page when a request comes in
-      // if it's been 60 seconds since the page was last generated
-      next: { revalidate: 60 },
+  // In development, we can use fetch with ISR
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/posts`,
+      {
+        // Enable ISR with a revalidation time of 60 seconds
+        next: { revalidate: 60 },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch posts");
     }
-  );
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch posts");
+    return res.json();
+  } catch (error) {
+    console.error("Fetch failed, falling back to direct data import:", error);
+    // Fallback to direct data import if fetch fails
+    return getAllPosts();
   }
-
-  return res.json();
 }
 
 export default async function BlogPage() {

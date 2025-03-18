@@ -4,61 +4,46 @@ import { notFound } from "next/navigation";
 
 // This generates the static paths at build time
 export async function generateStaticParams() {
-  try {
-    // During build time, directly use the data module instead of fetch
-    // This prevents the "fetch failed" error on Vercel
-    if (process.env.NODE_ENV === "production") {
-      const posts = getAllPosts();
-      return posts.map((post) => ({
-        id: post.id,
-      }));
-    } else {
-      // In development, we can still use fetch
-      const posts = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-        }/api/posts`
-      ).then((res) => res.json());
-
-      return posts.map((post: Post) => ({
-        id: post.id,
-      }));
-    }
-  } catch (error) {
-    console.error("Failed to generate static params:", error);
-    // Return empty array to prevent build failure
-    return [];
-  }
+  // Always use direct data import in production to avoid build issues on Vercel
+  const posts = getAllPosts();
+  return posts.map((post) => ({
+    id: post.id,
+  }));
 }
 
 // This fetches the data for a specific post
 async function getPost(id: string): Promise<Post> {
-  // During build time, directly use the data module
-  if (
-    process.env.NODE_ENV === "production" &&
-    process.env.NEXT_PHASE === "build"
-  ) {
+  // Always use direct data import in production to avoid build issues on Vercel
+  if (process.env.NODE_ENV === "production") {
     const post = getAllPosts().find((post) => post.id === id);
     if (!post) notFound();
     return post;
   }
 
-  // In runtime or development, use fetch with ISR
-  const res = await fetch(
-    `${
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-    }/api/posts/${id}`,
-    {
-      // Enable ISR with a revalidation time of 60 seconds
-      next: { revalidate: 60 },
+  // In development, we can use fetch with ISR
+  try {
+    const res = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+      }/api/posts/${id}`,
+      {
+        // Enable ISR with a revalidation time of 60 seconds
+        next: { revalidate: 60 },
+      }
+    );
+
+    if (!res.ok) {
+      notFound();
     }
-  );
 
-  if (!res.ok) {
-    notFound();
+    return res.json();
+  } catch (error) {
+    console.error("Fetch failed, falling back to direct data import:", error);
+    // Fallback to direct data import if fetch fails
+    const post = getAllPosts().find((post) => post.id === id);
+    if (!post) notFound();
+    return post;
   }
-
-  return res.json();
 }
 
 export default async function BlogPostPage({
